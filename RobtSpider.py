@@ -28,7 +28,7 @@ class robtSpider():
     def get_pages_one(self):
         try:
             # 获取页面的Response
-            response = requests.get('http://47.101.64.78:7090/api/task/searchTaskList', headers=headers, data=self.data)
+            response = requests.get('公司后台站点地址', headers=headers, data=self.data)
             # print(response.text)
             # print(type(response.text))
             # 整理返回数据
