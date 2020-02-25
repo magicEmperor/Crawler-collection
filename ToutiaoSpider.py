@@ -1,8 +1,17 @@
 import json
+import re
 
+import pymongo
+from bs4 import BeautifulSoup as bs
 import requests
 from urllib.parse import urlencode
 from requests.exceptions import RequestException
+# 导入配置文件所有参数
+from config import *
+
+# 创建MongoDB连接对象
+client = pymongo.MongoClient(MONGO_URL)
+db = client[MONGO_DB]
 
 # 构造必要的请求头参数
 headers = {
@@ -30,7 +39,7 @@ class Spider():
             'cur_tab': 1,
             'from': 'search_tab',
             'pd': 'synthesis',
-            'timestamp': 1582523983867,
+            'timestamp': 1582612780633,
         }
 
     # 获取详情页返回的数据
@@ -62,9 +71,44 @@ class Spider():
                 yield item.get('article_url')  # 构造一个生成器
                 # print(item.get('article_url'))
 
+    # 针对详情页链接获取图片页面信息
+    def get_img_parser(self, url):
+        html = self.get_page_index(url)
+        soup = bs(html, 'lxml')
+        title = soup.select("title")[0].get_text()
+        img_pattern = re.compile('gallery: JSON.parse\("(.*?)"\),', re.S)
+        img_info = re.search(img_pattern, html)
+        if img_info:
+            # print(type(img_info.group(1)))
+            # 调整数据结构，使其变成json格式
+            info = re.sub(r'\\\"', '"', str(img_info.group(1)))
+            # print(info)
+            json_img_info = json.loads(info)
+            img_url_items = json_img_info.get("sub_images")
+            urls_item = [item.get("url") for item in img_url_items]
+            # 将链接格式成有效链接
+            str_urls_item = re.sub("\\\\", "", str(urls_item))
+            dict_info = {
+                'title': title,
+                'url': url,
+                'images': eval(str_urls_item)
+            }
+            self.save_to_mongo(dict_info)
+
+    # 将数据写入到MongoDB中
+    def save_to_mongo(self, image_info):
+        if image_info != None:
+            if db[MONGO_TABLE].insert(image_info):
+                print("数据插入成功", image_info)
+                return True
+            return False
+
 
 if __name__ == '__main__':
     spider = Spider(0, "街拍")
     data = spider.parse_page_index()
-    # print(data.get('data'))
-    # print(spider.get_urls(data))
+    # print(data)
+    urls = spider.get_urls(data)
+    for url in urls:
+        img_parser = spider.get_img_parser(url)
+        # print(img_parser)
