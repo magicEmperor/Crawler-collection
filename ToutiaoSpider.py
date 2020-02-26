@@ -17,7 +17,7 @@ from requests.exceptions import RequestException
 from config import *
 
 # 创建MongoDB连接对象
-client = pymongo.MongoClient(MONGO_URL)
+client = pymongo.MongoClient(MONGO_URL,connect=False)
 db = client[MONGO_DB]
 # 当前目录下创建photo文件夹
 if not os.path.exists("photo"):
