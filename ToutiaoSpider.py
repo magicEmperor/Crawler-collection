@@ -1,5 +1,6 @@
 """
     实现今日头条街拍图集抓取
+
 """
 import json
 import os
@@ -107,11 +108,13 @@ class Spider():
                 return True
             return False
 
+    # 下载图片信息
     def download_img(self, img_urls):
         for url in img_urls:
             img_detail = self.get_page_index(url)
             self.save_img(img_detail.content, url)
 
+    # 保存图片到当前位置的photo文件夹
     def save_img(self, img_detail, url):
         filePath = "{0}\{1}\{2}.{3}".format(os.getcwd(), 'photo', md5(img_detail).hexdigest(), 'jpg')
         if filePath:
