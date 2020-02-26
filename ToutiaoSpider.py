@@ -2,7 +2,10 @@
     实现今日头条街拍图集抓取
 """
 import json
+import os
 import re
+from hashlib import md5
+from multiprocessing.pool import Pool
 
 import pymongo
 from bs4 import BeautifulSoup as bs
@@ -15,7 +18,9 @@ from config import *
 # 创建MongoDB连接对象
 client = pymongo.MongoClient(MONGO_URL)
 db = client[MONGO_DB]
-
+# 当前目录下创建photo文件夹
+if not os.path.exists("photo"):
+    os.mkdir('photo')
 # 构造必要的请求头参数
 headers = {
     'content-type': 'application/x-www-form-urlencoded',
@@ -56,36 +61,31 @@ class Spider():
             response = requests.get(url, headers=self.headers)
         except RequestException:
             return response.status_code
-        return response.text
+        return response
 
     # 获取首页信息
     def parse_page_index(self):
         html = self.get_page_index()
-        urldata = json.loads(html)
+        urldata = json.loads(html.text)
         return urldata
 
     # 获取详情页的Url集合
     def get_urls(self, data):
-        # print(urldata.get('data'))
         items = data.get('data')
-        # print(items)
         for item in items:
             if item.get('article_url') != None:
                 yield item.get('article_url')  # 构造一个生成器
-                # print(item.get('article_url'))
 
     # 针对详情页链接获取图片页面信息
     def get_img_parser(self, url):
         html = self.get_page_index(url)
-        soup = bs(html, 'lxml')
+        soup = bs(html.text, 'lxml')
         title = soup.select("title")[0].get_text()
         img_pattern = re.compile('gallery: JSON.parse\("(.*?)"\),', re.S)
-        img_info = re.search(img_pattern, html)
+        img_info = re.search(img_pattern, html.text)
         if img_info:
-            # print(type(img_info.group(1)))
             # 调整数据结构，使其变成json格式
             info = re.sub(r'\\\"', '"', str(img_info.group(1)))
-            # print(info)
             json_img_info = json.loads(info)
             img_url_items = json_img_info.get("sub_images")
             urls_item = [item.get("url") for item in img_url_items]
@@ -97,6 +97,7 @@ class Spider():
                 'images': eval(str_urls_item)
             }
             self.save_to_mongo(dict_info)
+            self.download_img(eval(str_urls_item))
 
     # 将数据写入到MongoDB中
     def save_to_mongo(self, image_info):
@@ -106,12 +107,28 @@ class Spider():
                 return True
             return False
 
+    def download_img(self, img_urls):
+        for url in img_urls:
+            img_detail = self.get_page_index(url)
+            self.save_img(img_detail.content, url)
 
-if __name__ == '__main__':
-    spider = Spider(0, "街拍")
+    def save_img(self, img_detail, url):
+        filePath = "{0}\{1}\{2}.{3}".format(os.getcwd(), 'photo', md5(img_detail).hexdigest(), 'jpg')
+        if filePath:
+            with open(filePath, 'wb') as f:
+                f.write(img_detail)
+                f.close()
+            print("正在下载:", url)
+
+
+def run(num):
+    spider = Spider(num, KEYWORD)
     data = spider.parse_page_index()
-    # print(data)
     urls = spider.get_urls(data)
     for url in urls:
-        img_parser = spider.get_img_parser(url)
-        # print(img_parser)
+        spider.get_img_parser(url)
+
+
+if __name__ == '__main__':
+    pool = Pool()
+    pool.map(run, [i * 20 for i in range(START_NUM, END_NUM + 1)])
