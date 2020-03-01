@@ -14,7 +14,7 @@ class CP():
     def __init__(self, name):
         self.data = {
             'name': name,
-            'issueCount': 30,
+            'issueCount': 30,   # 最大数值只能到最近100期
         }
         self.url = "http://www.cwl.gov.cn/cwl_admin/kjxx/findDrawNotice?" + urlencode(self.data)
 
