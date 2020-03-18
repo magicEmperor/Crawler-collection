@@ -97,13 +97,14 @@ def save_to_mongo(music_data):
             return True
         return False
 
-
-if __name__ == '__main__':
+def run():
     items = music_index(ID=11127)
     urls = music_detail_url(items)
     for i in urls:
         data_info = [i for i in get_music_detail(i)]
         # print(type(data_info))
         save_to_mongo(data_info)
+
+
 
 

@@ -2,7 +2,7 @@
     实现淘宝网页的数据抓取
 """
 import time
-
+import random
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver import ActionChains
@@ -52,9 +52,19 @@ def Login():
     input_pwd.clear()
     input_pwd.send_keys("zyk19960213")
     time.sleep(2)
-    ball = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'#nc_1_n1z')))
-    ActionChains(browser).click_and_hold(ball).perform()
-    ActionChains(browser).move_by_offset(252, 0).perform()
+    ball = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'#nc_1_n1z')))#nc_1__scale_text
+    kball = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,'#nc_1__scale_text')))
+
+    print(ball.location,ball.size)
+    print(kball.location,kball.size)
+    while int(ball.location['x']) < 1228:
+        i = random.random() * 100
+        ActionChains(browser).move_by_offset(i,0).perform()
+    # browser.delete_all_cookies()
+    cookies = browser.get_cookies()
+    print(cookies)
+    # ActionChains(browser).click_and_hold(ball).perform()
+    # ActionChains(browser).move_by_offset(252, 0).perform()
     # submit_login.click()
     S_info()
 # 创建方法模拟搜索美食
