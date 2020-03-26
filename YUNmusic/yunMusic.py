@@ -68,7 +68,7 @@ def get_music_detail(url):
             elif int(i)<=65535:
                 shuzi_list.append(chr(int(i)))
             else:
-                pass
+                print("失败")
             # else:
             #     shuzi_list.append(chr(int(i)))
         # print(shuzi_list)
